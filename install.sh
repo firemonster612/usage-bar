@@ -19,6 +19,16 @@ write_desktop() {
   done < "$source" > "$destination"
 }
 
+refresh_desktop_caches() {
+  touch "$data/icons/hicolor"
+  if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -f -t "$data/icons/hicolor" >/dev/null 2>&1 || true
+  fi
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database "$data/applications" >/dev/null 2>&1 || true
+  fi
+}
+
 if [[ -x "$root/AppRun" ]]; then
   rm -rf "$prefix"
   install -d "$prefix" "$bin_dir" "$data/applications" "$data/icons/hicolor/256x256/apps"
@@ -28,6 +38,7 @@ if [[ -x "$root/AppRun" ]]; then
     "$data/icons/hicolor/256x256/apps/usagebar.png"
   write_desktop "$root/usr/share/applications/io.github.usagebar.UsageBar.desktop" \
     "$data/applications/io.github.usagebar.UsageBar.desktop" "$prefix/AppRun"
+  refresh_desktop_caches
   printf 'Installed. Open UsageBar from your application menu.\n'
   exit 0
 fi
@@ -61,4 +72,5 @@ desktop="${root}/packaging/io.github.usagebar.UsageBar.desktop"
 install -m 0644 "$icon" \
   "$data/icons/hicolor/256x256/apps/usagebar.png"
 write_desktop "$desktop" "$data/applications/io.github.usagebar.UsageBar.desktop" "$prefix/bin/usagebar"
+refresh_desktop_caches
 printf 'Installed. Open UsageBar from your application menu.\n'
