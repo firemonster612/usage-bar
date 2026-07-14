@@ -46,7 +46,9 @@ install_build_dependencies() {
   printf 'Installing build dependencies…\n'
   if command -v apt-get >/dev/null 2>&1; then
     run_as_root apt-get update
-    run_as_root apt-get install -y build-essential cmake ninja-build qt6-base-dev qt6-svg-dev curl
+    local svg_dev=qt6-svg-dev
+    apt-cache show "$svg_dev" >/dev/null 2>&1 || svg_dev=libqt6svg6-dev
+    run_as_root apt-get install -y build-essential cmake ninja-build qt6-base-dev "$svg_dev" curl
   elif command -v dnf >/dev/null 2>&1; then
     run_as_root dnf install -y gcc-c++ cmake ninja-build qt6-qtbase-devel qt6-qtsvg-devel curl
   elif command -v yum >/dev/null 2>&1; then

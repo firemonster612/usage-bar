@@ -560,8 +560,12 @@ void ProviderSegmentButton::changeEvent(QEvent *event)
 {
     // The pixmaps bake in both the tint and the screen's scale factor, so a theme
     // switch and a drag onto a differently-scaled monitor both invalidate them.
-    if (event->type() == QEvent::PaletteChange
-        || event->type() == QEvent::DevicePixelRatioChange) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+    const bool scaleChanged = event->type() == QEvent::DevicePixelRatioChange;
+#else
+    constexpr bool scaleChanged = false;
+#endif
+    if (event->type() == QEvent::PaletteChange || scaleChanged) {
         updateIcons();
         update();
     }
