@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build qt6-base-dev qt6-svg-dev qt6-wayland qt6-gtk-platformtheme qt6-qpa-plugins libgl1-mesa-dev curl xvfb xauth
+      - run: ./scripts/fetch-codexbar-cli.sh
+      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
+      - name: Package AppImage
+        run: |
+          if [[ "${{ matrix.arch }}" == x86_64 ]]; then
+            deploy_sha=c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d
+            plugin_sha=15106be885c1c48a021198e7e1e9a48ce9d02a86dd0a1848f00bdbf3c1c92724
+            runtime_sha=2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d
+            appimagetool_sha=ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
+          else
+            deploy_sha=620095110d693282b8ebeb244a95b5e911cf8f65f76c88b4b47d16ae6346fcff
+            plugin_sha=bf1c24aff6d749b5cf423afad6f15abd4440f81dec1aab95706b25f6667cdcf1
+            runtime_sha=00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87444
+            appimagetool_sha=f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158
+          fi
+          curl -fLo linuxdeploy "https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-${{ matrix.arch }}.AppImage"
+          curl -fLo linuxdeploy-plugin-qt "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-qt-${{ matrix.arch }}.AppImage"
+          curl -fLo appimage-runtime "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-${{ matrix.arch }}"
+          curl -fLo appimagetool "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-${{ matrix.arch }}.AppImage"
+          echo "$deploy_sha  linuxdeploy" | sha256sum -c -
+          echo "$plugin_sha  linuxdeploy-plugin-qt" | sha256sum -c -
+          echo "$runtime_sha  appimage-runtime" | sha256sum -c -
+          echo "$appimagetool_sha  appimagetool" | sha256sum -c -
+          chmod +x linuxdeploy linuxdeploy-plugin-qt appimagetool
+          PATH="$PWD:$PATH" APPIMAGETOOL="$PWD/appimagetool" APPIMAGE_RUNTIME_FILE="$PWD/appimage-runtime" EXTRA_QT_PLUGINS="platforms;platformthemes;wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration" LINUXDEPLOY="$PWD/linuxdeploy" ./scripts/package-appimage.sh
+      - run: ./scripts/package-tar.sh
+      - name: Package smoke checks
+        run: |
+          ! ldd dist/AppDir/usr/bin/usagebar | grep -F 'not found'
+          appimage="$(find dist -maxdepth 1 -name '*.AppImage' -print -quit)"
+          xvfb-run -a timeout 5s "$appimage" --appimage-extract-and-run --background || test $? = 124
+          tar -xzf "dist/UsageBar-linux-${{ matrix.arch }}.tar.gz" -C "$RUNNER_TEMP"
+          xvfb-run -a timeout 5s "$RUNNER_TEMP/UsageBar-linux-${{ matrix.arch }}/AppRun" --background || test $? = 124
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: UsageBar-linux-${{ matrix.arch }}
+          path: |
+            dist/UsageBar-linux-${{ matrix.arch }}.tar.gz
+            dist/*.AppImage
+
+  publish:
+    name: Publish GitHub release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: UsageBar-linux-*
+          path: dist
+          merge-multiple: true
+      - name: Create release and upload packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --generate-notes --verify-tag

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=UsageBar
+Comment=AI coding assistant usage in your desktop tray
+Exec=usagebar --show
+Icon=usagebar
+Terminal=false
+Categories=Utility;
+StartupNotify=false

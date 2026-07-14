@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+  <!-- Tray version of assets/usagebar.svg: the same dial in one colour, redrawn
+       on the 16px grid rather than scaled down. The track keeps the 270-degree
+       bottom-open sweep and the hand keeps the 324-degree (70 percent) angle, so
+       the level is carried by the hand instead of by a second colour. -->
+  <path d="M3.62 13.38A6.2 6.2 0 1 1 12.38 13.38" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M8 9 10.83 6.94" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+  <circle cx="8" cy="9" r="1.35"/>
+</svg>
