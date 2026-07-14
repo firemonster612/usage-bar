@@ -1,6 +1,6 @@
 # UsageBar
 
-UsageBar is a Qt 6 tray application that shows how much of your AI coding
+UsageBar is a Linux Qt 6 tray application that shows how much of your AI coding
 assistant quota is left. It tracks six providers in one window and reads them
 all through `CodexBarCLI`, the command-line tool from the macOS
 [CodexBar](https://github.com/steipete/codexbar) project. UsageBar is an
@@ -11,6 +11,20 @@ The interface is plain Qt Widgets with no custom theme, so fonts, spacing,
 colours, dark mode, and accessibility follow your desktop settings. Nothing
 opens a window on its own — threshold notifications are the only unprompted UI,
 and they can be turned off.
+
+## Quick start
+
+Clone the repository and let the installer fetch the build dependencies:
+
+```sh
+git clone https://github.com/firemonster612/usage-bar.git
+cd usage-bar
+./install.sh
+```
+
+Or download the AppImage for your architecture from the
+[latest release](https://github.com/firemonster612/usage-bar/releases/latest),
+make it executable, and run it. The AppImage does not need installation.
 
 ## Providers
 
@@ -147,9 +161,12 @@ backend failure handling; they do not need the CLI or a display.
 ./install.sh
 ```
 
-This installs into `~/.local` without sudo, building first if there is no build
-yet, and works the same from a checkout or from an extracted release tarball.
-Open **UsageBar** from your application menu. Run
+This installs into `~/.local`, building first if there is no build yet, and
+works the same from a checkout or from an extracted release tarball. For a
+source checkout it installs the required build packages through `apt`, `dnf`,
+`yum`, `pacman`, `zypper`, `apk`, or `xbps`; package installation asks for
+administrator approval through `pkexec` when available. Open **UsageBar** from
+your application menu. Run
 `~/.local/share/usagebar/uninstall.sh` to remove it.
 
 ## Packaging
@@ -159,8 +176,7 @@ Open **UsageBar** from your application menu. Run
 tools. `scripts/package-tar.sh` turns that AppDir into a self-contained tarball
 with the install scripts alongside it. On a `v*` tag, CI runs both for x86_64
 and aarch64 and publishes `UsageBar-linux-<arch>.AppImage` and
-`UsageBar-linux-<arch>.tar.gz` to a GitHub release. No release has been tagged
-yet, so building from source is currently the only way to run it.
+`UsageBar-linux-<arch>.tar.gz` to a GitHub release.
 
 ## Licence
 

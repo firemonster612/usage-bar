@@ -29,6 +29,42 @@ refresh_desktop_caches() {
   fi
 }
 
+run_as_root() {
+  if [[ $EUID -eq 0 ]]; then
+    "$@"
+  elif command -v pkexec >/dev/null 2>&1; then
+    pkexec "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo "$@"
+  else
+    printf 'UsageBar needs administrator access to install build dependencies.\n' >&2
+    exit 1
+  fi
+}
+
+install_build_dependencies() {
+  printf 'Installing build dependencies…\n'
+  if command -v apt-get >/dev/null 2>&1; then
+    run_as_root apt-get update
+    run_as_root apt-get install -y build-essential cmake ninja-build qt6-base-dev qt6-svg-dev curl
+  elif command -v dnf >/dev/null 2>&1; then
+    run_as_root dnf install -y gcc-c++ cmake ninja-build qt6-qtbase-devel qt6-qtsvg-devel curl
+  elif command -v yum >/dev/null 2>&1; then
+    run_as_root yum install -y gcc-c++ cmake ninja-build qt6-qtbase-devel qt6-qtsvg-devel curl
+  elif command -v pacman >/dev/null 2>&1; then
+    run_as_root pacman -S --needed --noconfirm base-devel cmake ninja qt6-base qt6-svg curl
+  elif command -v zypper >/dev/null 2>&1; then
+    run_as_root zypper --non-interactive install gcc-c++ cmake ninja qt6-base-devel qt6-svg-devel curl
+  elif command -v apk >/dev/null 2>&1; then
+    run_as_root apk add build-base bash cmake ninja qt6-qtbase-dev qt6-qtsvg-dev curl
+  elif command -v xbps-install >/dev/null 2>&1; then
+    run_as_root xbps-install -Sy base-devel cmake ninja qt6-base-devel qt6-svg-devel curl
+  else
+    printf 'Unsupported package manager. Install a C++20 compiler, CMake, Ninja, Qt 6 Base and SVG development files, and curl, then run this script again.\n' >&2
+    exit 1
+  fi
+}
+
 if [[ -x "$root/AppRun" ]]; then
   rm -rf "$prefix"
   install -d "$prefix" "$bin_dir" "$data/applications" "$data/icons/hicolor/256x256/apps"
@@ -47,6 +83,7 @@ if [[ -x "$root/usr/bin/usagebar" ]]; then
   app_binary="$root/usr/bin/usagebar"
   cli_binary="$root/usr/lib/usagebar/CodexBarCLI"
 elif [[ ! -x "$root/build/usagebar" ]]; then
+  install_build_dependencies
   "$root/scripts/fetch-codexbar-cli.sh" "$root/.cache/codexbar-cli"
   cmake -S "$root" -B "$root/build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
   cmake --build "$root/build"
